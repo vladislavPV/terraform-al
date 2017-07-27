@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+set -o errexit
+# set -o pipefail #doesnt work with head well in ubuntu
+set -o nounset
+#set -o xtrace
+
+OPENSTACK_CRED="${HOME}/.internap-credentials.cfg"
+VERSIONS_URL="https://releases.hashicorp.com/index.json"
+TERRAFORM_BIN_DIR="${HOME}/.terraform-bin"
+VERSION_FILE=".terraform-version"
+COLOR="\033[1;33m"
+NC="\033[0m"
+
+#checking if dependency installed
+curl --version >/dev/null 2>&1 || { echo >&2 "I require curl but its not installed.  Aborting."; exit 1; }
+jq --version >/dev/null 2>&1 || { echo >&2 "I require jq but its not installed.  Aborting."; exit 1; }
+unzip -v >/dev/null 2>&1 || { echo >&2 "I require unzip but its not installed.  Aborting."; exit 1; }
+if [ "$(uname)" == "Darwin" ]; then
+  gsort --version >/dev/null 2>&1 || { echo >&2 "I require gsort from coreutils but its not installed.  Aborting."; exit 1; }
+fi
+
+PLATFORM="linux_amd64"
+SORT_CMD="sort"
+if [ "$(uname)" == "Darwin" ]; then
+  PLATFORM="darwin_amd64"
+  SORT_CMD="gsort"
+fi
+if [ -f "${OPENSTACK_CRED}" ]; then
+  export $(cat ${OPENSTACK_CRED}|grep -v DEFAULT | xargs)
+fi
+if [ ! -d "${TERRAFORM_BIN_DIR}" ]; then
+  mkdir "${TERRAFORM_BIN_DIR}"
+fi
+if [ -f "${VERSION_FILE}" ]; then
+  TERRAFORM_VERSION=$(cat ${VERSION_FILE}|grep -v -e '^$')
+else
+  TERRAFORM_VERSION=$(curl -s ${VERSIONS_URL} | jq '{terraform}' | grep -v "beta\|alpha\|rc\|versions"| grep version | ${SORT_CMD} --version-sort -r | head -1 | cut -d'"' -f4)
+fi
+echo -e "Using terraform version ${COLOR} ${TERRAFORM_VERSION} ${NC}"
+
+if [ ! -f "${TERRAFORM_BIN_DIR}/${TERRAFORM_VERSION}" ]; then
+  TERRAFORM_URL="https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_${PLATFORM}.zip"
+  echo -e "Downloading latest terraform ${COLOR} ${TERRAFORM_VERSION} ${NC}"
+  curl -s -o /tmp/terraform.zip $TERRAFORM_URL
+  unzip -q -o -d /tmp /tmp/terraform.zip
+  mv -f /tmp/terraform "${TERRAFORM_BIN_DIR}/${TERRAFORM_VERSION}"
+fi
+
+${TERRAFORM_BIN_DIR}/${TERRAFORM_VERSION} $@
