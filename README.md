@@ -25,6 +25,7 @@ download terraform bash script and put it in /usr/local/bin
 ```
 wget https://raw.githubusercontent.com/vladislavPV/terraform-al/master/terraform
 mv terraform /usr/local/bin/
+chmod  a+x /usr/local/bin/terraform
 ```
 ### Run
 ```
