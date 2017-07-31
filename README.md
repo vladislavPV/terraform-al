@@ -17,7 +17,7 @@ OS_PASSWORD=sdfgsdgfsdgsdgsgsggsgsg
 OS_TENANT_NAME=inap-324232
 ```
 ### Install
-install dependencies curl jq unzip
+install dependencies curl jq unzip (coreutils is needed on MacOs to get gsort)
 
 Remove terraform if it was already installed
 
